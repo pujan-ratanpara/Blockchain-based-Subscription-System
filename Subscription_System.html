@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blockchain Subscription System</title>
+  <style>
+    /* =====================
+       Professional UI CSS
+       ===================== */
+    :root{
+      --bg:#0f1724;           /* deep navy */
+      --card:#0b1220;         /* slightly lighter */
+      --muted:#9aa7bf;        /* muted text */
+      --accent:#4f46e5;       /* indigo */
+      --accent-2:#06b6d4;     /* cyan */
+      --success:#16a34a;
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.03);
+      --radius:14px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg) 0%, #071022 100%);color:#edf2f7}
+    .app{max-width:1100px;margin:36px auto;padding:32px;}
+
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700}
+    .brand h1{font-size:18px;margin:0}
+    .brand p{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:20px}
+
+    /* left panel */
+    .panel{background:linear-gradient(180deg,var(--card), rgba(11,18,32,0.7));padding:20px;border-radius:var(--radius);box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    .panel h3{margin:0 0 12px 0}
+    .field{display:flex;flex-direction:column;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted);margin-bottom:8px}
+    input[type=text], input[type=number], select{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;outline:none}
+    .controls{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    button{cursor:pointer;border:0;padding:10px 12px;border-radius:10px;font-weight:600}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted)}
+    .btn-success{background:var(--success);color:#01220f}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* right panel */
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .balance{font-weight:700}
+
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{text-align:left;padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    tbody tr{border-bottom:1px dashed rgba(255,255,255,0.02)}
+    td{padding:10px}
+    .hash{font-family:monospace;font-size:12px;color:var(--muted)}
+
+    .status{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(15,122,87,0.12);color:var(--success);font-weight:700}
+    .expired{background:rgba(239,68,68,0.08);color:var(--danger)}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* responsive */
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.panel{order:2}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">BC</div>
+        <div>
+          <h1>Blockchain Subscription System</h1>
+          <p>Lightweight demo — payments, subscriptions & ledger</p>
+        </div>
+      </div>
+      <div class="muted">Local demo • No external services</div>
+    </header>
+
+    <div class="grid">
+      <!-- left: controls -->
+      <div class="panel">
+        <h3>Manage Users & Subscriptions</h3>
+
+        <div class="field">
+          <label>Username</label>
+          <input id="username" type="text" placeholder="e.g. alice" />
+        </div>
+
+        <div class="controls">
+          <button class="btn-primary" id="createUserBtn">➕ Create New User</button>
+          <button class="btn-ghost" id="topupBtn">💰 Top-up Wallet (₹)</button>
+        </div>
+
+        <hr style="margin:16px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div class="field">
+          <label>Top-up Amount</label>
+          <input id="topupAmount" type="number" min="1" value="100" />
+        </div>
+
+        <div class="controls">
+          <button class="btn-success" id="pay100">💳 Pay ₹100 (29 days)</button>
+          <button class="btn-primary" id="pay200">💳 Pay ₹200 (58 days)</button>
+          <button class="btn-ghost" id="checkSub">📅 Check Subscription</button>
+        </div>
+
+        <p class="muted" style="margin-top:14px">Tips: Subscriptions are chained using a simplified Proof-of-Work for demo purposes. This page stores everything locally in memory.</p>
+      </div>
+
+      <!-- right: ledger, balances -->
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="toolbar">
+            <div>
+              <div class="muted">Wallet Balance</div>
+              <div class="balance" id="balanceDisplay">—</div>
+            </div>
+            <div>
+              <button class="btn-ghost" id="refreshLedger">Refresh Ledger</button>
+              <button class="btn-ghost" id="validateBtn">Validate Blockchain</button>
+            </div>
+          </div>
+
+          <div style="overflow:auto;max-height:420px">
+            <table id="ledger">
+              <thead>
+                <tr><th>#</th><th>User</th><th>Subscribed</th><th>Expiry</th><th>Hash</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4>Validation Result</h4>
+          <div id="validationResult" class="muted">No validation performed yet</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Built for demonstration — adapt for production by adding secure payments & persistence.</footer>
+  </div>
+
+  <script>
+    // Simple blockchain implementation (client-side demo)
+    class Block {
+      constructor(index, timestamp, user, subDate, expiryDate, prevHash, difficulty=3){
+        this.index = index;
+        this.timestamp = timestamp;
+        this.user = user;
+        this.subDate = subDate;
+        this.expiryDate = expiryDate;
+        this.prevHash = prevHash;
+        this.nonce = 0;
+        this.difficulty = difficulty;
+        this.hash = this.mine();
+      }
+      calculateHash(){
+        return sha256([this.index, this.timestamp, this.user, this.subDate, this.expiryDate, this.prevHash, this.nonce].join('|'));
+      }
+      mine(){
+        const target = '0'.repeat(this.difficulty);
+        while(true){
+          const h = this.calculateHash();
+          if(h.startsWith(target)) return h;
+          this.nonce++;
+        }
+      }
+    }
+
+    class Blockchain {
+      constructor(difficulty=3){
+        this.difficulty = difficulty;
+        this.chain = [this.createGenesis()];
+      }
+      createGenesis(){
+        return new Block(0, Date.now(), 'GENESIS', '-', '-', '0', this.difficulty);
+      }
+      addBlock(user, subDate, expiryDate){
+        const prev = this.chain[this.chain.length-1];
+        const b = new Block(this.chain.length, Date.now(), user, subDate, expiryDate, prev.hash, this.difficulty);
+        this.chain.push(b);
+      }
+      validate(){
+        for(let i=1;i<this.chain.length;i++){
+          const cur = this.chain[i];
+          const prev = this.chain[i-1];
+          if(cur.hash !== cur.calculateHash()) return [false, `Hash mismatch at ${i}`];
+          if(cur.prevHash !== prev.hash) return [false, `Prev hash mismatch at ${i}`];
+          if(!cur.hash.startsWith('0'.repeat(cur.difficulty))) return [false, `PoW failed at ${i}`];
+        }
+        return [true, 'Blockchain is VALID'];
+      }
+    }
+
+    // Minimal SHA-256 implementation using SubtleCrypto
+    function sha256(message){
+      // synchronous sha256 via crypto.subtle is async; implement a simple sync-like wrapper using seeded string -> hash via JS built-in crypto
+      // We'll use a synchronous (but not secure) fallback for demo clarity: use built-in subtle but block the UI minimally by using sync function with TextEncoder and then a synchronous hex from arrayBuffer isn't available. So we implement a small JS SHA-256 function instead.
+      // For demo purposes, use a lightweight hash (FNV-1a) — note: NOT cryptographically secure but fine for demo PoW visuals
+      let h = 2166136261 >>> 0;
+      for(let i=0;i<message.length;i++){
+        h ^= message.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      // produce hex string
+      return ('00000000' + (h >>> 0).toString(16)).slice(-8).repeat(8).slice(0,64);
+    }
+
+    // System management
+    const system = {
+      blockchain: new Blockchain(3),
+      balances: {},
+      users: new Set(),
+      createUser(username){
+        if(!username) return [false, 'Enter username'];
+        if(this.users.has(username)) return [false, 'User already exists'];
+        this.users.add(username); this.balances[username]=0; return [true,'User created'];
+      },
+      topup(user, amt){
+        if(!this.users.has(user)) return [false,'User not found'];
+        this.balances[user] += amt; return [true, `Wallet topped by ₹${amt}`];
+      },
+      getLastExpiry(user){
+        let last=0;
+        for(const b of this.blockchain.chain){
+          if(b.user===user && b.expiryDate!=='-'){
+            const ts = new Date(b.expiryDate).getTime();
+            if(!isNaN(ts)) last = Math.max(last, ts);
+          }
+        }
+        return last;
+      },
+      addSubscription(user, amount, days){
+        if(!this.users.has(user)) return [false,'User not found'];
+        if(this.balances[user] < amount) return [false,'Not enough balance'];
+        this.balances[user] -= amount;
+        const now = Date.now();
+        const last = this.getLastExpiry(user);
+        const start = Math.max(now, last||0);
+        const expiry = new Date(start + days*24*3600*1000);
+        const subDate = new Date(start).toLocaleString();
+        const expiryDate = expiry.toLocaleString();
+        this.blockchain.addBlock(user, subDate, expiryDate);
+        return [true, `Subscription active until ${expiryDate}`];
+      },
+      checkSubscription(user){
+        const last = this.getLastExpiry(user);
+        if(last> Date.now()) return [true, `ACTIVE until ${new Date(last).toLocaleString()}`];
+        return [false, 'Subscription EXPIRED'];
+      }
+    };
+
+    // UI bindings
+    const usernameEl = document.getElementById('username');
+    const topupAmountEl = document.getElementById('topupAmount');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const ledgerBody = document.querySelector('#ledger tbody');
+    const validationResult = document.getElementById('validationResult');
+
+    function showMsg(txt){ alert(txt); }
+
+    function refreshLedger(){
+      ledgerBody.innerHTML='';
+      for(const b of system.blockchain.chain){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${b.index}</td><td>${b.user}</td><td>${b.subDate}</td><td>${b.expiryDate}</td><td class="hash">${b.hash.slice(0,32)}...</td>`;
+        ledgerBody.appendChild(tr);
+      }
+      const u = usernameEl.value.trim();
+      if(u && system.users.has(u)) balanceDisplay.textContent = `₹${system.balances[u]}`;
+      else balanceDisplay.textContent = '—';
+    }
+
+    document.getElementById('createUserBtn').addEventListener('click',()=>{
+      const u = usernameEl.value.trim();
+      const [ok,msg] = system.createUser(u);
+      showMsg(msg);
+      refreshLedger();
+    });
+
+    document.getElementById('topupBtn').addEventListener('click',()=>{
+      const u = usernameEl.value.trim();
+      const amt = parseInt(topupAmountEl.value,10)||0;
+      const [ok,msg] = system.topup(u,amt);
+      showMsg(msg);
+      refreshLedger();
+    });
+
+    document.getElementById('pay100').addEventListener('click',()=>{
+      const u = usernameEl.value.trim();
+      const [ok,msg] = system.addSubscription(u,100,29);
+      showMsg(msg);
+      refreshLedger();
+    });
+
+    document.getElementById('pay200').addEventListener('click',()=>{
+      const u = usernameEl.value.trim();
+      const [ok,msg] = system.addSubscription(u,200,58);
+      showMsg(msg);
+      refreshLedger();
+    });
+
+    document.getElementById('checkSub').addEventListener('click',()=>{
+      const u = usernameEl.value.trim();
+      const [ok,msg] = system.checkSubscription(u);
+      showMsg(msg);
+    });
+
+    document.getElementById('refreshLedger').addEventListener('click', refreshLedger);
+    document.getElementById('validateBtn').addEventListener('click',()=>{
+      const [ok,msg] = system.blockchain.validate();
+      validationResult.textContent = msg;
+      validationResult.className = ok ? 'status' : 'status expired';
+    });
+
+    // initial render
+    refreshLedger();
+  </script>
+</body>
+</html>
